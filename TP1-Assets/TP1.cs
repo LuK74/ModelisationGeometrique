@@ -1,98 +1,126 @@
+using Mono.Cecil;
+using NUnit.Framework;
+using System.Collections.Generic;
 using UnityEngine;
 using static UnityEngine.Gizmos;
 
 [ExecuteInEditMode]
 public class TP1 : MonoBehaviour
 {
-    //private void _OnDrawGizmos()
-    //{
-    //   Vector3[] vertices;
-    //  foreach (Vector3 t in vertices) {
-    //    Gizmos.color = Color.white;
-    //    Gizmos.DrawSphere(t, radius: 0.1f);
-    // }
-    //}
-
-    void drawCylindre(float rayon, float height, int n_meridiens)
+    enum Shape
     {
+        Cylindre = 1,
+        Triangle = 2,
+        Sphere = 3,
+    }
+
+    [SerializeField] Shape ShapeType;
+
+
+    void drawSphere(float rayon, int n_parallels, int n_meridiens)
+    {
+        if (n_parallels < 2 || n_meridiens < 3) return;
         Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
         mesh.Clear();
 
-        Vector3[] cylindreVertices = new Vector3[n_meridiens * 4 + 2];
-        int[] cylindreTriangles = new int[6 * (n_meridiens * 2)]; // 2 triangles per planes, two planes per meridiens
+        Vector3[] sphereVertices = new Vector3[n_meridiens * n_parallels + 2];
+        sphereVertices[n_meridiens * n_parallels] = new Vector3(0, rayon, 0); // North pole
+        sphereVertices[n_meridiens * n_parallels + 1] = new Vector3(0, -rayon, 0); // South pole
+        List<int> sphereTriangles = new List<int>();
 
-        float theta_i = 2 * Mathf.PI * 0 / (n_meridiens + 1);
-        cylindreVertices[0] = new Vector3(rayon * Mathf.Cos(theta_i), -height / 2, rayon * Mathf.Sin(theta_i));
-        cylindreVertices[1] = new Vector3(rayon * Mathf.Cos(theta_i), height / 2, rayon * Mathf.Sin(theta_i));
-        for (int i = 0; i < n_meridiens + 2; i++)
+        for (int i = 0; i < n_parallels; i++)
         {
-            theta_i = 2 * Mathf.PI * i / (n_meridiens + 1);
-            cylindreVertices[(i + 1) * 2] = new Vector3(rayon * Mathf.Cos(theta_i), -height / 2, rayon * Mathf.Sin(theta_i));
-            cylindreVertices[(i + 1) * 2 + 1] = new Vector3(rayon * Mathf.Cos(theta_i), height / 2, rayon * Mathf.Sin(theta_i));
+            for (int j = 0; j < n_meridiens; j++)
+            {
+                float theta_i = (2 * Mathf.PI * j) / n_meridiens;
+                float zeta_i = (Mathf.PI * i) / n_parallels;
 
-            cylindreTriangles[i * 6] = i * 2;
-            cylindreTriangles[i * 6 + 1] = i * 2 + 1;
-            cylindreTriangles[i * 6 + 2] = (i + 1) * 2;
+                float x = rayon * Mathf.Sin(zeta_i) * Mathf.Cos(theta_i);
+                float y = rayon * Mathf.Sin(zeta_i) * Mathf.Sin(theta_i);
+                float z = rayon * Mathf.Cos(zeta_i);
 
-            cylindreTriangles[i * 6 + 3] = (i + 1) * 2 + 1;
-            cylindreTriangles[i * 6 + 4] = (i + 1) * 2;
-            cylindreTriangles[i * 6 + 5] = i * 2 + 1;
+                // Reversing z,y compare to slides, because Unity axis aren't the same
+                sphereVertices[i * n_meridiens + j] = new Vector3(x, z, y);
+
+                // North pole case
+                if (i == 0)
+                {
+                    sphereTriangles.Add(n_meridiens * n_parallels); // North pole if i==0, if not south pole
+                    sphereTriangles.Add((i * n_meridiens + ((j + 1) % n_meridiens)));
+                    sphereTriangles.Add(i * n_meridiens + j);
+                }
+                else
+                {
+                    sphereTriangles.Add((i - 1) * n_meridiens + j);
+                    sphereTriangles.Add((i * n_meridiens + ((j + 1) % n_meridiens)));
+                    sphereTriangles.Add((i * n_meridiens + j));
+
+                    sphereTriangles.Add((i - 1) * n_meridiens + j);
+                    sphereTriangles.Add(((i - 1) * n_meridiens + ((j + 1) % n_meridiens)));
+                    sphereTriangles.Add((i * n_meridiens + ((j + 1) % n_meridiens)));
+                }
+            }
         }
 
-        int[] upperTriangles = new int[(n_meridiens * 2 + 1) * 3];
-        upperTriangles[0] = 0;
-        upperTriangles[1] = 2;
-        upperTriangles[2] = ((n_meridiens+1) * 2);
-
-        for (int i = 1; i < (n_meridiens * 2 + 1); i++)
+        // Adding south pole
+        int k = n_parallels - 1;
+        for (int j = 0; j < n_meridiens; j++)
         {
-            upperTriangles[(i-1) * 3] = i * 2;
-            upperTriangles[(i - 1) * 3 + 1] = ((i + 1)% (n_meridiens*2+1)) * 2;
-            upperTriangles[(i - 1) * 3 + 2] = (i - 1) * 2;
+            sphereTriangles.Add(n_meridiens * n_parallels + 1);
+            sphereTriangles.Add(k * n_meridiens + j);
+            sphereTriangles.Add((k * n_meridiens + ((j + 1) % n_meridiens)));
         }
 
-        int[] lowerTriangles = new int[(n_meridiens * 2 + 1) * 3];
-        lowerTriangles[0] = 1;
-        lowerTriangles[1] = 3;
-        lowerTriangles[2] = ((n_meridiens + 1) * 2) + 1;
-
-        for (int i = 1; i < (n_meridiens * 2 + 1); i++)
-        {
-            lowerTriangles[(i - 1) * 3] = i * 2 + 1;
-            lowerTriangles[(i - 1) * 3 + 1] = ((i + 1) % (n_meridiens * 2 + 1)) * 2 + 1;
-            lowerTriangles[(i - 1) * 3 + 2] = (i - 1) * 2 + 1;
-        }
-
-	int[] triangles = new int[cylindreTriangles.Length + upperTriangles.Length + lowerTriangles.Length];
-
-	for (int i = 0; i < triangles.Length; i++) {
-	    if (i < cylindreTriangles.Length)
-		triangles[i] = cylindreTriangles[i];
-	    else if (i < cylindreTriangles.Length + upperTriangles.Length)
-		triangles[i] = upperTriangles[i - cylindreTriangles.Length];
-	    else
-		triangles[i] = lowerTriangles[i - (cylindreTriangles.Length + lowerTriangles.Length)];
-	}
-	
-        mesh.vertices = cylindreVertices;
-        mesh.triangles = triangles;
+        mesh.vertices = sphereVertices;
+        mesh.triangles = sphereTriangles.ToArray();
     }
 
-    void drawPlane(Vector3[] vertices)
+    void drawCylindre(float rayon, float height, int n_meridiens)
     {
+        if (n_meridiens == 0) return;
+
         Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
-        mesh.vertices = vertices;
+        mesh.Clear();
 
-        int[] planes_idxs = new int[6] { 0, 1, 3, 0, 2 ,3};
-        mesh.triangles = planes_idxs;
-        mesh.RecalculateNormals();
+        Vector3[] cylindreVertices = new Vector3[n_meridiens * 2];
+        List<int> cylindreTriangles = new List<int>(); // 2 triangles per planes, two planes per meridiens
 
+        float theta_i = 0;
+        for (int i = 0; i < n_meridiens; i++)
+        {
+            theta_i = 2 * Mathf.PI * i / (n_meridiens);
+            cylindreVertices[i * 2] = new Vector3(rayon * Mathf.Cos(theta_i), -height / 2, rayon * Mathf.Sin(theta_i));
+            cylindreVertices[i * 2 + 1] = new Vector3(rayon * Mathf.Cos(theta_i), height / 2, rayon * Mathf.Sin(theta_i));
+
+            cylindreTriangles.Add(i * 2);
+            cylindreTriangles.Add(i * 2 + 1);
+            cylindreTriangles.Add(((i + 1) % n_meridiens) * 2);
+
+            cylindreTriangles.Add(((i + 1) % n_meridiens) * 2 + 1);
+            cylindreTriangles.Add(((i + 1) % n_meridiens) * 2);
+            cylindreTriangles.Add(i * 2 + 1);
+        }
+
+        // Fan method to draw upper/lower face, we'll use (n_meridiens)_idx and (n_meridiens)_ixd + 1 as a fixed points
+        for (int i = 0; i < n_meridiens; i++)
+        {
+            cylindreTriangles.Add(n_meridiens);
+            cylindreTriangles.Add(i * 2);
+            cylindreTriangles.Add(((i + 1) % n_meridiens) * 2);
+
+            cylindreTriangles.Add(n_meridiens + 1);
+            cylindreTriangles.Add(((i + 1) % n_meridiens) * 2 + 1);
+            cylindreTriangles.Add(i * 2 + 1);
+        }
+
+        mesh.vertices = cylindreVertices;
+        mesh.triangles = cylindreTriangles.ToArray();
     }
 
     void drawTriangles(int nbLignes, int nbColonnes)
     {
         Vector3[] vertices = new Vector3[(nbColonnes + 1) * (nbLignes + 1)];
-        int [] triangles = new int[6 * (nbColonnes + 1) * (nbLignes + 1)];
+        List<int> triangles = new List<int>();
 
         Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
         mesh.Clear();
@@ -112,44 +140,57 @@ public class TP1 : MonoBehaviour
         {
             for (int j = 0; j < nbColonnes; j++)
             {
-                triangles[i * nbColonnes * 6 + j * 6] = (i * (nbColonnes + 1) + j);
-                triangles[i * nbColonnes * 6 + j * 6 + 1] = ((i+1) * (nbColonnes + 1) + j);
-                triangles[i * nbColonnes * 6 + j * 6 + 2] = ((i+1) * (nbColonnes + 1) + j + 1);
+                triangles.Add((i * (nbColonnes + 1) + j));
+                triangles.Add(((i + 1) * (nbColonnes + 1) + j));
+                triangles.Add(((i + 1) * (nbColonnes + 1) + j + 1));
 
-                triangles[i * nbColonnes * 6 + j * 6 + 3] = (i * (nbColonnes + 1) + j);
-                triangles[i * nbColonnes * 6 + j * 6 + 4] = (i * (nbColonnes + 1) + j + 1);
-                triangles[i * nbColonnes * 6 + j * 6 + 5] = ((i + 1) * (nbColonnes + 1) + j + 1);
+                triangles.Add((i * (nbColonnes + 1) + j));
+                triangles.Add(((i + 1) * (nbColonnes + 1) + j + 1));
+                triangles.Add((i * (nbColonnes + 1) + j + 1));
 
             }
         }
 
-
-
         mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        //mesh.RecalculateNormals();
+        mesh.triangles = triangles.ToArray();
+    }
+
+    void drawShape()
+    {
+        if (ShapeType == Shape.Cylindre)
+        {
+            drawCylindre(2, 3, 20);
+        }
+        else if (ShapeType == Shape.Triangle)
+        {
+            drawTriangles(4, 5);
+        }
+        else if (ShapeType == Shape.Sphere)
+        {
+            drawSphere(2, 20, 30);
+        }
     }
 
     void Start()
     {
-        drawCylindre(2, 3, 4);
+        drawShape();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
-        drawCylindre(2, 3, 4);
+        drawShape();
     }
 
     void OnRenderObject()
     {
-        drawCylindre(2, 3, 4);
+        drawShape();
     }
 
 
     // Update is called once per frame
     void Update()
     {
-        drawCylindre(2, 3, 4);
+        drawShape();
     }
 }
