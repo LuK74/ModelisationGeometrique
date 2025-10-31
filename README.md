@@ -5,6 +5,8 @@
 
 > Les paramètres de la "Shape" sont exposés en tant que [SerializeField] permettant de configurer dans l'éditeur de unity
 
+> Sur le GameObject j'utilisais le material suivant: "SpatialMappingWireframe"
+
 ### Triangle
 > Triangle n'est pas très explicite mais il s'agit en réalite d'un rectangle composé de 'nbLignes' et 'nbColonnes' donc chaque sous rectangle est composé de 2 triangles
 
