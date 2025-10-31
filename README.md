@@ -7,12 +7,14 @@
 
 ### Triangle
 > Triangle n'est pas très explicite mais il s'agit en réalite d'un rectangle composé de 'nbLignes' et 'nbColonnes' donc chaque sous rectangle est composé de 2 triangles
+
 [SerializeField]:
 - nbLignes: Nombre de lignes (int)
 - nbColonnes: Nombre de colonnes (int)
 
 ### Cylindre
 > Utilisé pour représenter un cylindre
+
 [SerializeField]:
 - m_rayon: Rayon du cylindre (float) 
 - m_height: Hauteur du cylindre (float)
@@ -22,6 +24,7 @@
 
 ### Sphere
 > Utilisé pour représenter un Sphere
+
 [SerializeField]:
 - m_rayon: Rayon du sphere (float) 
 - m_nmeridiens: Nombre de méridiens (int)
@@ -31,6 +34,7 @@
 
 ### Cone
 > Utilisé pour représenter un cone
+
 [SerializeField]:
 - m_rayon: Rayon du cone (float) 
 - m_height: Hauteur du cone (float)
