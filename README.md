@@ -7,6 +7,8 @@
 
 > Sur le GameObject j'utilisais le material suivant: "SpatialMappingWireframe"
 
+> Aussi, les scripts sont exécutés en mode editor, afin de permettre de tester sans avoir à lancer l'exécution à chaque fois
+
 ### Triangle
 > Triangle n'est pas très explicite mais il s'agit en réalite d'un rectangle composé de 'nbLignes' et 'nbColonnes' donc chaque sous rectangle est composé de 2 triangles
 
