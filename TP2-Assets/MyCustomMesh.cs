@@ -11,30 +11,37 @@ using Microsoft.Unity.VisualStudio.Editor;
 [ExecuteInEditMode]
 public class MyCustomMesh : MonoBehaviour
 {
-    [SerializeField] string filepath;
+
+    [SerializeField] string input_filepath;
 	[SerializeField] string output_filepath;
 
+	// Number of vertices, faces and edges of the Mesh
     int nvertices;
     int nfaces;
     int nedges;
+
+	// List of each vertices coords
     List<Vector3> meshCoords;
+	// A computed gravity center
     Vector3 meshGravityCenter;
     
+	// Struct representing a face of the mesh
+	// (<int> number of vertices, List<int> indexes of the vertices, <Vector3> normal of the face)
     private struct Face {
-	public int m_nvertices;
-	public List<int> m_verticesIndexes;
-	public Vector3 m_normal;
-    };
+		public int m_nvertices;
+		public List<int> m_verticesIndexes;
+		public Vector3 m_normal;
+	};
     List<Face> facesList;
 
-    private MeshFilter meshfilter;
+	private MeshFilter meshfilter;
     
     public void printInfo() {
-	Debug.Log(nvertices);
-	Debug.Log(nfaces);
-	Debug.Log(nedges);
-	Debug.Log(meshCoords.Count);
-	Debug.Log(facesList.Count);
+		Debug.Log(nvertices);
+		Debug.Log(nfaces);
+		Debug.Log(nedges);
+		Debug.Log(meshCoords.Count);
+		Debug.Log(facesList.Count);
     }
 
 	// Errors in the .off file are treated by simple "returning" before doing the computation    
@@ -46,7 +53,7 @@ public class MyCustomMesh : MonoBehaviour
 		float maxNorm = -1.0f;
 
 		// Loading mesh from file pointed by "filepath"
-		string[] m_lines = File.ReadAllLines(filepath);
+		string[] m_lines = File.ReadAllLines(input_filepath);
 		if (m_lines.Length <= 1) return; // print error here
 		if (m_lines[0] != "OFF") return; // if format isn't OFF, throw error, for the sake of time, we simply return;
 		string[] mesh_specs = m_lines[1].Split(" ");
@@ -125,11 +132,11 @@ public class MyCustomMesh : MonoBehaviour
 
 		// Unfortunately for us, Unity is using vertices normal, so we need to compute those normals using our faces normals
 		List<Vector3> vertices_normals = new List<Vector3>();
-		Vector3 edgeNormal = new Vector3(0,0,0);
+		Vector3 edgeNormal = new Vector3(0.0f,0.0f,0.0f);
 		int edgeNFaces = 0;
 		for (int i = 0; i < nvertices; i++) {
 			edgeNFaces = 0;
-			edgeNormal = new Vector3(0, 0, 0);
+			edgeNormal = new Vector3(0.0f, 0.0f, 0.0f);
 			for (int j = 0; j < nfaces; j++) {
 				// We simply are summing each face normal which contains the 'i' vertices
 				if (facesList[j].m_verticesIndexes.Contains(i)) {
@@ -151,14 +158,17 @@ public class MyCustomMesh : MonoBehaviour
 	public void exportMesh()
 	{
 		StreamWriter sw = File.CreateText(output_filepath);
+		// Writing OFF header
 		sw.WriteLine("OFF");
+		// Writing the specs (nvertices; nfaces; nedges)
 		string specs = nvertices.ToString() + " " + nfaces.ToString() + " " + nedges.ToString();
 		sw.WriteLine(specs);
+		// We're writing each vertices coords in the file
 		foreach (Vector3 point in meshCoords)
 		{
 			sw.WriteLine(point.x.ToString() + " " + point.y.ToString() + " " + point.z.ToString());
-		}
-
+		} 
+		// Writing each face which correspond to (n_vertices; List<int> vertices)
 		foreach(Face f in facesList)
 		{
 			string faceSpec = f.m_nvertices.ToString();
@@ -169,23 +179,6 @@ public class MyCustomMesh : MonoBehaviour
 			sw.WriteLine(faceSpec);
 		}
     }
-
-    public void OnDrawGizmoSelected() {
-	Vector3 edgeNormal = new Vector3(0,0,0);
-	int edgeNFaces = 0;
-	for (int i = 0; i < nvertices; i++) {
-	    edgeNFaces = 0;
-	    for (int j = 0; j < nfaces; j++) {
-		if (facesList[j].m_verticesIndexes.Contains(i)) {
-		    edgeNormal = facesList[j].m_normal + edgeNormal;
-		    edgeNFaces++;
-		}
-	    }
-	    edgeNormal = edgeNormal / edgeNFaces;
-	    edgeNormal.Normalize();
-	    Gizmos.DrawLine(meshfilter.transform.position + meshCoords[i], meshfilter.transform.position + -edgeNormal);
-	}
-    }
     
     public void Awake() {
 		loadMesh();
@@ -194,12 +187,8 @@ public class MyCustomMesh : MonoBehaviour
     }
     
     public void Update() {
-	//loadMesh();
-	//printInfo();
-    }
-
-    public void OnRenderObject() {
-	//loadMesh();
+		//loadMesh();
+		//printInfo();
     }
 
     public void Start() {
